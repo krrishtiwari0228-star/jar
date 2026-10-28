@@ -1,0 +1,48 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ANIZLUX · API Chatbot Demo</title>
+<style>
+:root{color-scheme:dark;--bg:#09090d;--panel:#12121a;--line:#292936;--text:#f4f4fa;--muted:#9a9aad;--accent:#a78bfa;--green:#4ade80;--red:#fb7185}
+*{box-sizing:border-box}body{margin:0;background:radial-gradient(ellipse at 50% -15%,#2b1b4c 0,transparent 42%),var(--bg);color:var(--text);font:15px/1.5 Inter,system-ui,Segoe UI,sans-serif;min-height:100vh;display:grid;place-items:center;padding:20px}
+.app{width:min(820px,100%);height:min(850px,calc(100vh - 40px));min-height:570px;background:#0e0e14;border:1px solid var(--line);border-radius:22px;display:flex;flex-direction:column;overflow:hidden;box-shadow:0 30px 100px #0008}
+header{padding:20px 22px;border-bottom:1px solid var(--line);display:flex;align-items:center;justify-content:space-between;gap:12px;background:#12121a}
+.brand{display:flex;align-items:center;gap:12px}.logo{width:42px;height:42px;border-radius:13px;background:linear-gradient(135deg,#a78bfa,#6d28d9);display:grid;place-items:center;font-weight:900;color:white;letter-spacing:-1px}.brand h1{font-size:16px;margin:0}.brand p{font-size:12px;color:var(--muted);margin:2px 0 0}.badge{font-size:11px;border:1px solid #3a3155;color:#c4b5fd;padding:5px 9px;border-radius:999px;white-space:nowrap}
+.settings{padding:14px 20px;display:flex;gap:10px;align-items:end;flex-wrap:wrap;border-bottom:1px solid var(--line);background:#0f0f16}
+.field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:130px}.field label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.08em}
+select,input,button{font:inherit}select,input{color:var(--text);background:#171721;border:1px solid #333342;border-radius:10px;padding:10px 11px;min-width:0;width:100%;outline:none}select:focus,input:focus{border-color:var(--accent)}
+button{border:0;border-radius:10px;padding:10px 14px;background:var(--accent);color:#170e2a;font-weight:750;cursor:pointer}button:disabled{opacity:.55;cursor:wait}.test{background:#262333;color:#e6ddff;border:1px solid #40385a;white-space:nowrap}
+.status{padding:8px 20px;font-size:12px;color:var(--muted);border-bottom:1px solid #22222d}.status.good{color:var(--green)}.status.bad{color:var(--red)}
+.messages{padding:22px;overflow:auto;flex:1;display:flex;flex-direction:column;gap:15px}.welcome{margin:auto;text-align:center;max-width:420px;color:var(--muted)}.welcome .spark{font-size:32px}.welcome h2{color:var(--text);font-size:22px;margin:8px 0}.welcome p{margin:0}
+.msg{max-width:85%;padding:12px 15px;border-radius:16px;white-space:pre-wrap;overflow-wrap:anywhere}.msg.user{align-self:flex-end;background:#35275a;border:1px solid #514078}.msg.assistant{align-self:flex-start;background:#191922;border:1px solid #2c2c39}.msg .role{font-size:10px;text-transform:uppercase;letter-spacing:.1em;color:#b9a5ef;margin-bottom:5px}.msg.user .role{color:#d7c7ff}
+.composer{padding:15px 18px 18px;border-top:1px solid var(--line);display:flex;gap:10px;background:#12121a}.composer input{flex:1}.footnote{padding:0 20px 13px;color:#77778a;font-size:11px;background:#12121a}
+@media(max-width:540px){body{padding:0}.app{height:100dvh;min-height:0;border-radius:0;border:0}.settings{padding:12px;gap:8px}.field{min-width:calc(50% - 8px)}.settings .test{flex:1}.messages{padding:15px}.msg{max-width:94%}header{padding:16px}.composer{padding:12px}}
+</style>
+</head>
+<body>
+<main class="app">
+<header><div class="brand"><div class="logo">A</div><div><h1>ANIZLUX · API Lab</h1><p>Private chatbot connection test</p></div></div><span class="badge">DEMO</span></header>
+<section class="settings">
+  <div class="field"><label for="keySlot">API key slot</label><select id="keySlot"><option value="1">Key 1</option><option value="2">Key 2</option><option value="3">Key 3</option></select></div>
+  <div class="field"><label for="model">Model ID</label><input id="model" value="cc/claude-sonnet-4-20250514" maxlength="160" autocomplete="off"></div>
+  <button class="test" id="testBtn" type="button">Test key</button>
+</section>
+<div class="status" id="status" role="status">Ready. Add the API keys as Vercel environment variables, then test a slot.</div>
+<section class="messages" id="messages" aria-live="polite"><div class="welcome" id="welcome"><div class="spark">✦</div><h2>Test your AI connection</h2><p>Choose a key slot, test it, then send a message. Your keys are never sent to the browser.</p></div></section>
+<form class="composer" id="chatForm"><input id="prompt" placeholder="Message the demo bot…" maxlength="4000" autocomplete="off" required><button id="sendBtn" type="submit">Send ↗</button></form>
+<div class="footnote">API keys stay server-side. Requests may incur provider usage or costs.</div>
+</main>
+<script>
+const messagesEl=document.getElementById("messages"),statusEl=document.getElementById("status"),slotEl=document.getElementById("keySlot"),modelEl=document.getElementById("model"),testBtn=document.getElementById("testBtn"),sendBtn=document.getElementById("sendBtn"),form=document.getElementById("chatForm"),promptEl=document.getElementById("prompt");
+let history=[];
+function status(text,type=""){statusEl.textContent=text;statusEl.className="status "+type}
+function addMessage(role,content){document.getElementById("welcome")?.remove();const el=document.createElement("div");el.className="msg "+role;const label=document.createElement("div");label.className="role";label.textContent=role==="user"?"You":"Assistant";const body=document.createElement("div");body.textContent=content;el.append(label,body);messagesEl.append(el);messagesEl.scrollTop=messagesEl.scrollHeight;return el}
+async function callApi(msgs){const response=await fetch("/api/chatbot-demo",{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({keySlot:Number(slotEl.value),model:modelEl.value.trim(),messages:msgs})});const data=await response.json().catch(()=>({error:"The server returned an unreadable response."}));if(!response.ok)throw Object.assign(new Error(data.error||"Request failed"),{code:data.code,status:response.status,upstreamStatus:data.upstreamStatus});return data}
+function friendlyError(e){if(e.code==="KEY_NOT_CONFIGURED")return e.message;if(e.code==="AUTH_FAILED")return "Authentication failed (401/403). This key may be invalid or not accepted by this endpoint.";if(e.code==="RATE_LIMITED")return "Rate limit/quota reached (429).";return e.message||"Unknown error"}
+testBtn.addEventListener("click",async()=>{testBtn.disabled=true;status("Testing key "+slotEl.value+"…");try{const data=await callApi([{role:"user",content:"Reply with exactly: API connection successful."}]);status("✓ Key "+slotEl.value+" works · model: "+data.model,"good");addMessage("assistant","✓ Key "+slotEl.value+" works. API response: "+data.answer)}catch(e){status("✕ Key "+slotEl.value+": "+friendlyError(e),"bad")}finally{testBtn.disabled=false}});
+form.addEventListener("submit",async e=>{e.preventDefault();const text=promptEl.value.trim();if(!text)return;promptEl.value="";history.push({role:"user",content:text});addMessage("user",text);sendBtn.disabled=true;testBtn.disabled=true;status("Waiting for the model…");const pending=addMessage("assistant","Thinking…");try{const data=await callApi(history);pending.lastChild.textContent=data.answer;history.push({role:"assistant",content:data.answer});status("✓ Response received · "+data.model,"good")}catch(err){pending.lastChild.textContent="Error: "+friendlyError(err);history.pop();status("Request failed: "+friendlyError(err),"bad")}finally{sendBtn.disabled=false;testBtn.disabled=false;promptEl.focus()}});
+</script>
+</body>
+</html>
